@@ -42,24 +42,88 @@ Options:
    Print version information
 
 -w INTEGER
-   Exit with WARNING status if less than INTEGER MB of memory are free
+   Exit with WARNING status if less than INTEGER
 -w PERCENT%
-   Exit with WARNING status if less than PERCENT of memory is free
+   Exit with WARNING status if less than PERCENT
 -c INTEGER
-   Exit with CRITICAL status if less than INTEGER MB of memory are free
+   Exit with CRITICAL status if less than INTEGER
 -c PERCENT%
-   Exit with CRITICAL status if less than PERCENT of memory is free
+   Exit with CRITICAL status if less than PERCENT
 -v
    Verbose output
 __EOT
 }
 
+function get_temperature {
+    temp=$(($(</sys/class/thermal/thermal_zone0/temp) / 1000))
+    #temp=51
+
+    if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
+       # One or both thresholds were not specified
+       echo "$PROGNAME: Threshold not set"
+       print_usage
+       exit $STATE_UNKNOWN
+    elif [[ "$thresh_warn" -gt "$thresh_crit" ]]; then
+       # The warning threshold must be greater than the critical threshold
+       echo "$PROGNAME: Warning free space should be more than critical free space"
+       print_usage
+       exit $STATE_UNKNOWN
+    fi
+
+    # Get performance data for Shinken/Icinga or whatever you use. "Performance Data" field
+    # PERFDATA=`${SENSORPROG} | grep "$sensor" | head -n1`
+
+    if [[ "$temp" -gt "$thresh_crit" ]]; then
+       # Free memory is less than the critical threshold
+       echo "CRITICAL - $temp °C CPU temperature is to high | temperature=$temp;$thresh_warn;$thresh_crit;0;1200"
+       exit $STATE_CRITICAL
+    elif [[ "$temp" -gt "$thresh_warn" ]] && [[ "$temp" -lt "$thresh_crit" ]]; then
+       # Free memory is less than the warning threshold
+       echo "WARNING - CPU temperature is $temp °C | temperature=$temp;$thresh_warn;$thresh_crit;0;1200"
+       exit $STATE_WARNING
+    else
+       # There's no error
+       echo "OK - CPU temperature is $temp °C | temperature=$temp;$thresh_warn;$thresh_crit;0;1200"
+       exit $STATE_OK
+    fi
+}
+
+function get_frequency {
+    freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
+    #freq=930
+    
+    if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
+       # One or both thresholds were not specified
+       echo "$PROGNAME: Threshold not set"
+       print_usage
+       exit $STATE_UNKNOWN
+    elif [[ "$thresh_warn" -gt "$thresh_crit" ]]; then
+       # The warning threshold must be greater than the critical threshold
+       echo "$PROGNAME: Warning free space should be more than critical free space"
+       print_usage
+       exit $STATE_UNKNOWN
+    fi
+
+
+    # Get performance data for Shinken/Icinga or whatever you use. "Performance Data" field
+    # PERFDATA=`${SENSORPROG} | grep "$sensor" | head -n1`
+
+    if [[ "$freq" -gt "$thresh_crit" ]]; then
+       # Free memory is less than the critical threshold
+       echo "CRITICAL - $freq CPU frequency is to high | cpufreq=$freq;$thresh_warn;$thresh_crit;0;1200"
+       exit $STATE_CRITICAL
+    elif [[ "$freq" -gt "$thresh_warn" ]] && [[ "$freq" -lt "$thresh_crit" ]]; then
+       # Free memory is less than the warning threshold
+       echo "WARNING - CPU frequency is $freq | cpufreq=$freq;$thresh_warn;$thresh_crit;0;1200"
+       exit $STATE_WARNING
+    else
+       # There's no error
+       echo "OK - CPU frequency is $freq | cpufreq=$freq;$thresh_warn;$thresh_crit;0;1200"
+       exit $STATE_OK
+    fi
+}
+
 # Main #########################################################################
-
-#temp=$(($(</sys/class/thermal/thermal_zone0/temp) / 1000))
-
-freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
-#freq=630
 
 # Verbosity level
 verbosity=0
@@ -79,9 +143,13 @@ while [ "$1" ]; do
            print_revision
            exit $STATE_OK
            ;;
-       -v | --verbose)
-           : $(( verbosity++ ))
-           shift
+       -t | --temperature)
+           get_temperature
+           exit $STATE_OK
+           ;;
+       -f | --frequency)
+           get_frequency
+           exit $STATE_OK
            ;;
        -w | --warning | -c | --critical)
            if [[ -z "$2" || "$2" = -* ]]; then
@@ -113,43 +181,3 @@ while [ "$1" ]; do
    esac
 done
 
-if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
-   # One or both thresholds were not specified
-   echo "$PROGNAME: Threshold not set"
-   print_usage
-   exit $STATE_UNKNOWN
-elif [[ "$thresh_warn" -gt "$thresh_crit" ]]; then
-   # The warning threshold must be greater than the critical threshold
-   echo "$PROGNAME: Warning free space should be more than critical free space"
-   print_usage
-   exit $STATE_UNKNOWN
-fi
-
-if [[ "$verbosity" -ge 2 ]]; then
-   # Print debugging information
-   /bin/cat <<__EOT
-Debugging information:
-  Warning threshold: $thresh_warn MB
-  Critical threshold: $thresh_crit MB
-  Verbosity level: $verbosity
-  Total memory: $tot_mem MB
-  Free memory: $free_mem MB ($free_mem_perc%)
-__EOT
-fi
-
-# Get performance data for Shinken/Icinga or whatever you use. "Performance Data" field
-# PERFDATA=`${SENSORPROG} | grep "$sensor" | head -n1`
-
-if [[ "$freq" -gt "$thresh_crit" ]]; then
-   # Free memory is less than the critical threshold
-   echo "CRITICAL - $freq CPU frequency is to high | cpufreq=$freq;$thresh_warn;$thresh_crit;0;1200"
-   exit $STATE_CRITICAL
-elif [[ "$freq" -gt "$thresh_warn" ]] && [[ "$freq" -lt "$thresh_crit" ]]; then
-   # Free memory is less than the warning threshold
-   echo "WARNING - CPU frequency is $freq | cpufreq=$freq;$thresh_warn;$thresh_crit;0;1200"
-   exit $STATE_WARNING
-else
-   # There's no error
-   echo "OK - CPU frequency is $freq | cpufreq=$freq;$thresh_warn;$thresh_crit;0;1200"
-   exit $STATE_OK
-fi
