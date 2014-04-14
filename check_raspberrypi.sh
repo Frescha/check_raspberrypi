@@ -75,15 +75,15 @@ function get_temperature {
 
     if [[ "$temp" -gt "$thresh_crit" ]]; then
        # Free memory is less than the critical threshold
-       echo "CRITICAL - $temp °C CPU temperature is to high | temperature=$temp;$thresh_warn;$thresh_crit;0;1200"
+       echo "CRITICAL - $temp °C CPU temperature is to high | temperature=$temp;$thresh_warn;$thresh_crit;0;80"
        exit $STATE_CRITICAL
     elif [[ "$temp" -gt "$thresh_warn" ]] && [[ "$temp" -lt "$thresh_crit" ]]; then
        # Free memory is less than the warning threshold
-       echo "WARNING - CPU temperature is $temp °C | temperature=$temp;$thresh_warn;$thresh_crit;0;1200"
+       echo "WARNING - CPU temperature is $temp °C | temperature=$temp;$thresh_warn;$thresh_crit;0;80"
        exit $STATE_WARNING
     else
        # There's no error
-       echo "OK - CPU temperature is $temp °C | temperature=$temp;$thresh_warn;$thresh_crit;0;1200"
+       echo "OK - CPU temperature is $temp °C | temperature=$temp;$thresh_warn;$thresh_crit;0;80"
        exit $STATE_OK
     fi
 }
@@ -91,7 +91,7 @@ function get_temperature {
 function get_frequency {
     freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
     #freq=930
-    
+
     if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
        # One or both thresholds were not specified
        echo "$PROGNAME: Threshold not set"
