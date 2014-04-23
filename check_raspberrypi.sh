@@ -40,11 +40,9 @@ Options:
    Print detailed help screen
 -V
    Print version information
+-m 
+   Module: Temperature org Frequency
 
--w INTEGER
-   Exit with WARNING status if less than INTEGER
--w PERCENT%
-   Exit with WARNING status if less than PERCENT
 -c INTEGER
    Exit with CRITICAL status if less than INTEGER
 -c PERCENT%
@@ -55,8 +53,8 @@ __EOT
 }
 
 function get_temperature {
-    #temp=$(($(</sys/class/thermal/thermal_zone0/temp) / 1000))
-    temp=51
+    temp=$(($(</sys/class/thermal/thermal_zone0/temp) / 1000))
+    #temp=51
 
     if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
        # One or both thresholds were not specified
@@ -69,9 +67,6 @@ function get_temperature {
        print_usage
        exit $STATE_UNKNOWN
     fi
-
-    # Get performance data for Shinken/Icinga or whatever you use. "Performance Data" field
-    # PERFDATA=`${SENSORPROG} | grep "$sensor" | head -n1`
 
     if [[ "$temp" -gt "$thresh_crit" ]]; then
        # Free memory is less than the critical threshold
@@ -89,8 +84,8 @@ function get_temperature {
 }
 
 function get_frequency {
-    #freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
-    freq=930
+    freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
+    #freq=930
 
     if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
        # One or both thresholds were not specified
@@ -103,10 +98,6 @@ function get_frequency {
        print_usage
        exit $STATE_UNKNOWN
     fi
-
-
-    # Get performance data for Shinken/Icinga or whatever you use. "Performance Data" field
-    # PERFDATA=`${SENSORPROG} | grep "$sensor" | head -n1`
 
     if [[ "$freq" -gt "$thresh_crit" ]]; then
        # Free memory is less than the critical threshold
@@ -157,14 +148,7 @@ while [ "$1" ]; do
                exit $STATE_UNKNOWN
            fi
            ;;          
-       -t | --temperature)
-           get_temperature
-           exit $STATE_OK
-           ;;
-       -f | --frequency)
-           get_frequency
-           exit $STATE_OK
-           ;;
+
        -w | --warning | -c | --critical)
            if [[ -z "$2" || "$2" = -* ]]; then
                # Threshold not provided
