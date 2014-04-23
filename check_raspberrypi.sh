@@ -55,8 +55,8 @@ __EOT
 }
 
 function get_temperature {
-    temp=$(($(</sys/class/thermal/thermal_zone0/temp) / 1000))
-    #temp=51
+    #temp=$(($(</sys/class/thermal/thermal_zone0/temp) / 1000))
+    temp=51
 
     if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
        # One or both thresholds were not specified
@@ -89,8 +89,8 @@ function get_temperature {
 }
 
 function get_frequency {
-    freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
-    #freq=930
+    #freq=$(($(</sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000))
+    freq=930
 
     if [[ -z "$thresh_warn" || -z "$thresh_crit" ]]; then
        # One or both thresholds were not specified
@@ -143,6 +143,20 @@ while [ "$1" ]; do
            print_revision
            exit $STATE_OK
            ;;
+       -m | --module)
+           if [[ "$2" = "temperature" ]]; then
+              get_temperature
+              exit $STATE_OK
+           elif [[ "$2" = "frequency" ]]; then
+              get_frequency
+              exit $STATE_OK
+           else
+               # Threshold is neither a number nor a percentage
+               echo "$PROGNAME: Threshold must be integer or percentage"
+               print_usage
+               exit $STATE_UNKNOWN
+           fi
+           ;;          
        -t | --temperature)
            get_temperature
            exit $STATE_OK
